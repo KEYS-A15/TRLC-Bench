@@ -1,0 +1,17 @@
+; TRLCBench Rover p01 Valid Plan
+; Makespan: 18.0 | Slack: 0.0 | Battery used: 30/100
+;
+; Timeline:
+;   [0,3]   navigate wp0→wp1
+;   [3,6]   navigate wp1→wp2
+;   [6,9]   collect-sample s1 at wp2
+;   [9,13]  analyze-sample s1 at wp2
+;   [13,16] navigate wp2→wp3
+;   [16,18] transmit-data s1 at wp3  ← window closes at t=18 exactly
+
+0.000: (navigate r1 wp0 wp1) [3.000]
+3.000: (navigate r1 wp1 wp2) [3.000]
+6.000: (collect-sample r1 s1 wp2) [3.000]
+9.000: (analyze-sample r1 s1 wp2) [4.000]
+13.000: (navigate r1 wp2 wp3) [3.000]
+16.000: (transmit-data r1 s1 wp3) [2.000]

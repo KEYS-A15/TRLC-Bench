@@ -1,0 +1,61 @@
+# ==========================================================================
+# TRLCBench Domain Config: Mars Rover
+#
+# This file contains ALL domain-specific knowledge.
+# The Python code is domain-agnostic and reads this config.
+# ==========================================================================
+
+domain_name: rover-temporal
+ergodicity: non-ergodic
+
+# Deadlines: action_name → absolute time limit for action END
+deadlines:
+  transmit-data: 18.0
+
+# Ordering: [before, after] — 'before' must end before 'after' starts
+ordering_constraints:
+  - [collect-sample, analyze-sample]
+  - [analyze-sample, transmit-data]
+
+# Mutex: actions that cannot overlap (rover can't move and work)
+mutex_actions:
+  - [navigate, collect-sample]
+  - [navigate, analyze-sample]
+  - [navigate, transmit-data]
+  - [navigate, recharge]
+  - [collect-sample, analyze-sample]
+  - [collect-sample, transmit-data]
+  - [analyze-sample, transmit-data]
+
+# Bounded durations: action_name → [min, max]
+# Rover actions have fixed durations (set by distance/sample), not bounded.
+# Empty here — this is a rover property, not a limitation.
+bounded_durations: {}
+
+# Cascade dependencies: if action fails, these become invalid
+cascade_dependencies:
+  navigate:
+    - collect-sample
+    - analyze-sample
+    - transmit-data
+  collect-sample:
+    - analyze-sample
+    - transmit-data
+  analyze-sample:
+    - transmit-data
+
+# Dead-end conditions (non-ergodic — no recovery possible)
+dead_end_conditions:
+  - "Comm window closed (t > 18) with data not transmitted"
+  - "Battery depleted before reaching sample location"
+  - "Battery depleted before reaching comm waypoint"
+
+# Recovery options (none — fully non-ergodic)
+recovery_options: []
+
+# Problem-specific overrides (p01)
+metadata:
+  problem: p01_single_sample
+  comm_window_close: 18.0
+  topology: "wp0 --3-- wp1 --3-- wp2 --3-- wp3"
+  initial_battery: 100

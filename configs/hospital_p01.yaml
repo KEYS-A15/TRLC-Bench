@@ -1,0 +1,82 @@
+# ==========================================================================
+# TRLCBench Domain Config: Hospital Sterilization Pipeline
+#
+# Novel contribution: bounded duration constraints [d_min, d_max]
+# Semi-ergodic: batch can reroute to alternate OR if primary window missed
+# ==========================================================================
+
+domain_name: hospital-sterilization
+ergodicity: semi-ergodic
+
+# Deadlines: action_name → absolute time limit
+# deliver must complete before OR window closes
+deadlines:
+  deliver: 28.0
+
+# Ordering: pipeline sequence
+ordering_constraints:
+  - [transfer, decontaminate]    # must arrive at station first (implicit)
+  - [decontaminate, wash]
+  - [wash, sterilize]
+  - [sterilize, cool]
+  - [cool, pack]
+  - [pack, deliver]
+
+# Mutex: batch can't be in two pipeline stages at once
+mutex_actions:
+  - [decontaminate, wash]
+  - [wash, sterilize]
+  - [sterilize, cool]
+  - [cool, pack]
+  - [pack, deliver]
+
+# Bounded durations — THE NOVEL CONTRIBUTION
+# action_name → [d_min, d_max]
+# Too short = contamination/incomplete. Too long = degradation/delay.
+bounded_durations:
+  decontaminate: [3.0, 8.0]
+  wash: [2.0, 6.0]
+  sterilize: [5.0, 12.0]
+  cool: [3.0, 1000.0]    # effectively no upper bound
+  pack: [1.0, 4.0]
+
+# Cascade dependencies
+cascade_dependencies:
+  decontaminate:
+    - wash
+    - sterilize
+    - cool
+    - pack
+    - deliver
+  wash:
+    - sterilize
+    - cool
+    - pack
+    - deliver
+  sterilize:
+    - cool
+    - pack
+    - deliver
+  cool:
+    - pack
+    - deliver
+  pack:
+    - deliver
+
+# Dead-end conditions
+dead_end_conditions:
+  - "All OR windows closed with batch undelivered"
+  - "Batch contaminated (duration below d_min) — must restart pipeline"
+
+# Recovery options (semi-ergodic)
+recovery_options:
+  - "Reroute batch from OR1 to OR2 if OR2 window still open"
+  - "Extend cool duration to absorb upstream delay (no upper bound)"
+  - "Use alternate autoclave if primary is occupied"
+
+metadata:
+  problem: p01_single_batch
+  or1_window_close: 28.0
+  pipeline: "decontaminate → wash → sterilize → cool → pack → deliver"
+  num_autoclaves: 1
+  num_batches: 1
