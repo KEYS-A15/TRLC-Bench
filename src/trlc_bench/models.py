@@ -14,9 +14,9 @@ from enum import Enum, auto
 from typing import Any
 
 
-
-
-
+# ---------------------------------------------------------------------------
+# Core plan representation
+# ---------------------------------------------------------------------------
 
 @dataclass
 class PlanAction:
@@ -72,26 +72,26 @@ class TemporalPlan:
         return "\n".join(lines)
 
 
-
-
-
+# ---------------------------------------------------------------------------
+# Failure taxonomy
+# ---------------------------------------------------------------------------
 
 class FailureClass(Enum):
     """The three failure classes in TRLCBench's taxonomy."""
-    A = auto()  
-    B = auto()  
-    C = auto()  
+    A = auto()  # Duration perturbation (stretch or shrink)
+    B = auto()  # Structural invalidation (window/constraint change)
+    C = auto()  # Cascading violation (mid-execution failure)
 
 
 @dataclass
 class FailureReport:
     """Complete description of an injected failure."""
     failure_class: FailureClass
-    failure_type: str           
-    description: str            
-    affected_actions: list[str] 
+    failure_type: str           # Human-readable subtype
+    description: str            # What happened
+    affected_actions: list[str] # Action names affected
     broken_constraints: list[str]
-    severity: str               
+    severity: str               # "low", "medium", "high", "catastrophic"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -101,26 +101,26 @@ class InjectionResult:
     original_plan: TemporalPlan
     disrupted_plan: TemporalPlan
     report: FailureReport
-    problem_patch: str = ""     
+    problem_patch: str = ""     # PDDL patch text if problem file changes
 
 
-
-
-
+# ---------------------------------------------------------------------------
+# Repair output
+# ---------------------------------------------------------------------------
 
 @dataclass
 class RepairResult:
     """Output of a repair algorithm."""
     repaired_plan: TemporalPlan
     strategy_name: str
-    repair_actions_taken: list[str]  
-    success: bool                    
+    repair_actions_taken: list[str]  # Human-readable log of what was done
+    success: bool                    # Did the repairer believe it succeeded?
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-
-
-
+# ---------------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------------
 
 @dataclass
 class RepairMetrics:
@@ -128,13 +128,13 @@ class RepairMetrics:
     is_valid: bool
     makespan_original: float
     makespan_repaired: float
-    makespan_delta: float           
-    temporal_deviation: float       
-    action_count_delta: int         
-    constraint_retention: float     
-    slack: float                    
-    robustness: float               
-    trlc_score: float               
+    makespan_delta: float           # (repaired - original) / original
+    temporal_deviation: float       # Sum of |shifted| across actions
+    action_count_delta: int         # Actions added/removed
+    constraint_retention: float     # Fraction of original constraints still met
+    slack: float                    # Time remaining before nearest deadline
+    robustness: float               # Estimated ability to absorb further disruption
+    trlc_score: float               # Composite score [0, 100]
 
     def summary_dict(self) -> dict[str, Any]:
         return {
@@ -149,15 +149,15 @@ class RepairMetrics:
         }
 
 
-
-
-
+# ---------------------------------------------------------------------------
+# Domain configuration (domain-specific knowledge lives HERE, not in code)
+# ---------------------------------------------------------------------------
 
 @dataclass
 class TemporalConstraint:
     """A single temporal constraint from the domain config."""
     name: str
-    constraint_type: str       
+    constraint_type: str       # "deadline", "ordering", "mutex", "bounded_duration"
     parameters: dict[str, Any] = field(default_factory=dict)
 
 
@@ -171,12 +171,13 @@ class DomainConfig:
     what to inject, and what to measure.
     """
     domain_name: str
-    ergodicity: str                          
-    deadlines: dict[str, float]              
-    ordering_constraints: list[tuple[str, str]]  
-    mutex_actions: list[tuple[str, str]]     
-    bounded_durations: dict[str, tuple[float, float]]  
-    cascade_dependencies: dict[str, list[str]]  
-    dead_end_conditions: list[str]           
-    recovery_options: list[str]              
+    ergodicity: str                          # "non-ergodic", "semi-ergodic", "ergodic"
+    deadlines: dict[str, float]              # name → absolute time
+    ordering_constraints: list[tuple[str, str]]  # (before, after) action name pairs
+    mutex_actions: list[tuple[str, str]]     # (a, b) cannot overlap
+    bounded_durations: dict[str, tuple[float, float]]  # action → (min, max)
+    cascade_dependencies: dict[str, list[str]]  # action → [dependents]
+    dead_end_conditions: list[str]           # Human-readable dead-end descriptions
+    recovery_options: list[str]              # Human-readable recovery descriptions
+    fixed_durations: dict[str, float] = field(default_factory=dict)  # action → exact duration
     metadata: dict[str, Any] = field(default_factory=dict)

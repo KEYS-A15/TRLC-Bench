@@ -1,9 +1,9 @@
 """
-TRLC_Bench CLI — run experiments from the command line.
+TRLCBench CLI — run experiments from the command line.
 
 Usage:
-    trlc_bench run --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
-    trlc_bench validate --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
+    trlcbench run --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
+    trlcbench validate --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from trlc_bench.experiment import print_results_table, run_experiment_matrix
+from trlc_bench.experiment import print_results_table, run_experiment_matrix, run_single_experiment
 from trlc_bench.injector import (
     inject_action_failure,
     inject_duration_stretch,
@@ -21,7 +21,10 @@ from trlc_bench.injector import (
 from trlc_bench.metrics import compute_metrics
 from trlc_bench.parser import load_domain_config, parse_plan_file
 from trlc_bench.repairer import local_shift_repair, replan_naive, constraint_aware_repair
+from trlc_bench.trace_exporter import export_trace
 from trlc_bench.validator import validate_plan
+from trlc_bench.models import RepairResult
+from trlc_bench.llm_repair import llm_repair
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
@@ -80,10 +83,22 @@ def cmd_run(args: argparse.Namespace) -> None:
         "local_shift": local_shift_repair,
         "replan_naive": replan_naive,
         "constraint_aware": constraint_aware_repair,
+        "llm_repair": llm_repair,
     }
 
     # Run matrix
     df = run_experiment_matrix(plan, config, injections, strategies)
+
+    # Also collect individual repairs and metrics for trace export
+    all_repairs: dict[str, dict[str, RepairResult]] = {}
+    all_metrics: dict[str, dict[str, object]] = {}
+    for inj_name, inj_result in injections.items():
+        all_repairs[inj_name] = {}
+        all_metrics[inj_name] = {}
+        for strat_name, repair_fn in strategies.items():
+            repair, met = run_single_experiment(plan, config, inj_result, repair_fn)
+            all_repairs[inj_name][strat_name] = repair
+            all_metrics[inj_name][strat_name] = met
 
     # Display
     print_results_table(df)
@@ -95,11 +110,25 @@ def cmd_run(args: argparse.Namespace) -> None:
         df.to_csv(output, index=False)
         print(f"\nResults saved to {output}")
 
+    # Save trace
+    if args.trace:
+        trace_path = Path(args.trace)
+        export_trace(
+            output_path=trace_path,
+            domain_name=config.domain_name,
+            problem_name=args.plan,
+            original_plan=plan,
+            injections=injections,
+            repairs=all_repairs,
+            metrics=all_metrics,
+        )
+        print(f"Trace saved to {trace_path}")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="trlc_bench",
-        description="TRLC_Bench: Temporal Plan Repair Benchmark",
+        prog="trlcbench",
+        description="TRLCBench: Temporal Plan Repair Benchmark",
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -113,6 +142,7 @@ def main() -> None:
     p_run.add_argument("--config", required=True, help="Domain config YAML")
     p_run.add_argument("--plan", required=True, help="Plan file")
     p_run.add_argument("--output", help="Output CSV path")
+    p_run.add_argument("--trace", help="Output plan trace file path")
 
     args = parser.parse_args()
 

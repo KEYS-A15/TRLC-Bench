@@ -53,6 +53,9 @@ dead_end_conditions:
 # Recovery options (none — fully non-ergodic)
 recovery_options: []
 
+fixed_durations:
+  navigate: 3.0
+
 # Problem-specific overrides (p01)
 metadata:
   problem: p01_single_sample

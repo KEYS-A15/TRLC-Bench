@@ -95,7 +95,7 @@ def parse_plan_file(
 ) -> TemporalPlan:
     """Parse a plan from a file path."""
     path = Path(path)
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text()
     if not domain:
         domain = path.stem
     return parse_plan(text, domain=domain, problem=problem)
@@ -114,7 +114,7 @@ def load_domain_config(path: str | Path) -> DomainConfig:
     cascade dependencies, and ergodicity properties.
     """
     path = Path(path)
-    with open(path, encoding="utf-8") as f:
+    with open(path) as f:
         raw = yaml.safe_load(f)
 
     return DomainConfig(
@@ -130,6 +130,7 @@ def load_domain_config(path: str | Path) -> DomainConfig:
         bounded_durations={
             k: tuple(v) for k, v in raw.get("bounded_durations", {}).items()
         },
+        fixed_durations=raw.get("fixed_durations", {}),
         cascade_dependencies=raw.get("cascade_dependencies", {}),
         dead_end_conditions=raw.get("dead_end_conditions", []),
         recovery_options=raw.get("recovery_options", []),
