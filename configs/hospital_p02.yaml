@@ -1,0 +1,78 @@
+# ==========================================================================
+# TRLCBench Domain Config: Hospital Sterilization — Problem 02 (Two Batches)
+#
+# Two batches share one autoclave. b1→OR1, b2→OR2.
+# Semi-ergodic: b1 can reroute to OR2 if OR1 window missed.
+# Autoclave contention is the structural bottleneck.
+#
+# Key difference from p01: concurrency is NECESSARY.
+# Running batches sequentially misses OR1 deadline.
+# ==========================================================================
+
+domain_name: hospital-sterilization
+ergodicity: semi-ergodic
+
+# Each batch has its own deadline (different ORs)
+# deliver for b1 must complete before OR1 closes at 28
+# deliver for b2 must complete before OR2 closes at 38
+deadlines:
+  deliver: 28.0  # conservative: use tighter deadline (OR1)
+
+ordering_constraints:
+  - [decontaminate, wash]
+  - [wash, sterilize]
+  - [sterilize, cool]
+  - [cool, pack]
+  - [pack, deliver]
+
+mutex_actions:
+  # Autoclave exclusion: two sterilize actions sharing same autoclave can't overlap
+  - [sterilize, sterilize]
+
+bounded_durations:
+  decontaminate: [3.0, 8.0]
+  wash: [2.0, 6.0]
+  sterilize: [5.0, 12.0]
+  cool: [3.0, 1000.0]
+  pack: [1.0, 4.0]
+
+cascade_dependencies:
+  decontaminate:
+    - wash
+    - sterilize
+    - cool
+    - pack
+    - deliver
+  wash:
+    - sterilize
+    - cool
+    - pack
+    - deliver
+  sterilize:
+    - cool
+    - pack
+    - deliver
+  cool:
+    - pack
+    - deliver
+  pack:
+    - deliver
+
+dead_end_conditions:
+  - "Both OR windows closed with batch undelivered"
+  - "Batch contaminated (duration below d_min) — must restart pipeline"
+  - "Autoclave failure during sterilization — cascade to all downstream"
+
+recovery_options:
+  - "Reroute b1 from OR1 to OR2 if OR2 window still open (semi-ergodic)"
+  - "Extend cool duration to absorb upstream delay (cool has no upper bound)"
+  - "Swap autoclave priority: let b2 go first, b1 uses the later slot"
+
+metadata:
+  problem: p02_two_batches
+  or1_window: "[0, 28]"
+  or2_window: "[10, 38]"
+  num_autoclaves: 1
+  num_batches: 2
+  concurrency_necessary: true
+  autoclave_schedule: "b1=[8,13], b2=[13,18]"

@@ -1,5 +1,5 @@
 """
-TRLCBench test suite.
+TRLC_Bench test suite.
 
 Tests follow the module dependency order:
   models → parser → validator → injector → repairer → metrics → experiment
@@ -22,7 +22,7 @@ from trlc_bench.injector import (
     inject_duration_stretch,
     inject_window_shrink,
 )
-from trlc_bench.repairer import local_shift_repair, replan_naive
+from trlc_bench.repairer import local_shift_repair, replan_naive, constraint_aware_repair
 from trlc_bench.metrics import compute_metrics
 
 
@@ -279,6 +279,59 @@ class TestRepairer:
         # Naive replan starts from t=0
         first = repair.repaired_plan.sorted_actions()[0]
         assert first.start_time == 0.0
+
+    def test_constraint_aware_handles_class_a(self):
+        """Constraint-aware should compress durations to meet deadlines."""
+        plan = parse_plan(ROVER_PLAN_TEXT)
+        config = _rover_config()
+        inj = inject_duration_stretch(plan, config, "navigate", 1.5)
+        repair = constraint_aware_repair(inj.disrupted_plan, config, inj.report)
+        assert len(repair.repair_actions_taken) > 0
+        assert repair.strategy_name == "constraint_aware"
+
+    def test_constraint_aware_respects_bounded_durations(self):
+        """On hospital domain, constraint-aware should enforce [d_min, d_max]."""
+        plan = parse_plan(HOSPITAL_PLAN_TEXT)
+        config = _hospital_config()
+        # Inject shrink that violates lower bound
+        inj = inject_duration_stretch(plan, config, "decontaminate", 0.5)
+        repair = constraint_aware_repair(inj.disrupted_plan, config, inj.report)
+        # The repaired plan should have decontaminate >= d_min
+        for a in repair.repaired_plan.actions:
+            if a.name == "decontaminate":
+                assert a.duration >= 3.0 - 1e-9, (
+                    f"decontaminate duration {a.duration} < d_min 3.0"
+                )
+
+    def test_constraint_aware_handles_class_c(self):
+        """Constraint-aware should re-insert failed actions."""
+        plan = parse_plan(ROVER_PLAN_TEXT)
+        config = _rover_config()
+        inj = inject_action_failure(plan, config, "collect-sample")
+        repair = constraint_aware_repair(inj.disrupted_plan, config, inj.report)
+        # Should have re-inserted collect-sample
+        names = [a.name for a in repair.repaired_plan.actions]
+        assert "collect-sample" in names, "Failed action should be re-inserted"
+
+    def test_constraint_aware_beats_naive_on_deviation(self):
+        """
+        Key benchmark property: constraint-aware should have LOWER
+        temporal deviation than naive replan, while being at least as valid.
+        """
+        plan = parse_plan(ROVER_PLAN_TEXT)
+        config = _rover_config()
+        inj = inject_duration_stretch(plan, config, "navigate", 1.3)
+
+        repair_aware = constraint_aware_repair(inj.disrupted_plan, config, inj.report)
+        repair_naive = replan_naive(inj.disrupted_plan, config, inj.report)
+
+        m_aware = compute_metrics(plan, repair_aware.repaired_plan, config)
+        m_naive = compute_metrics(plan, repair_naive.repaired_plan, config)
+
+        assert m_aware.temporal_deviation <= m_naive.temporal_deviation, (
+            f"Constraint-aware deviation ({m_aware.temporal_deviation}) should be "
+            f"<= naive ({m_naive.temporal_deviation})"
+        )
 
 
 # ===========================================================================

@@ -1,29 +1,11 @@
-; TRLCBench Rover p02 Valid Plan
-; Two samples: s2 at wp4 (closer), s1 at wp2 (further)
-; Strategy: visit s2 first (shorter detour), then s1, transmit both at wp3
-; Makespan: 29.0 | Window closes: 30.0 | Slack: 1.0 | Battery used: 46/100
-;
-; Timeline:
-;   [0,3]    navigate wp0→wp1
-;   [3,5]    navigate wp1→wp4
-;   [5,7]    collect-sample s2 at wp4
-;   [7,10]   analyze-sample s2 at wp4
-;   [10,12]  navigate wp4→wp1
-;   [12,15]  navigate wp1→wp2
-;   [15,18]  collect-sample s1 at wp2
-;   [18,22]  analyze-sample s1 at wp2
-;   [22,25]  navigate wp2→wp3
-;   [25,27]  transmit-data s1 at wp3
-;   [27,29]  transmit-data s2 at wp3  ← window closes at t=30. 1s slack.
-
-0.000: (navigate r1 wp0 wp1) [3.000]
-3.000: (navigate r1 wp1 wp4) [2.000]
-5.000: (collect-sample r1 s2 wp4) [2.000]
-7.000: (analyze-sample r1 s2 wp4) [3.000]
-10.000: (navigate r1 wp4 wp1) [2.000]
-12.000: (navigate r1 wp1 wp2) [3.000]
-15.000: (collect-sample r1 s1 wp2) [3.000]
-18.000: (analyze-sample r1 s1 wp2) [4.000]
-22.000: (navigate r1 wp2 wp3) [3.000]
-25.000: (transmit-data r1 s1 wp3) [2.000]
-27.000: (transmit-data r1 s2 wp3) [2.000]
+0.000: (navigate r1 wp0 wp1)  [3.000]
+3.001: (navigate r1 wp1 wp4)  [2.000]
+5.002: (collect-sample r1 s2 wp4)  [2.000]
+7.003: (analyze-sample r1 s2 wp4)  [3.000]
+10.004: (navigate r1 wp4 wp1)  [2.000]
+12.005: (navigate r1 wp1 wp2)  [3.000]
+15.006: (collect-sample r1 s1 wp2)  [3.000]
+18.007: (analyze-sample r1 s1 wp2)  [4.000]
+22.008: (navigate r1 wp2 wp3)  [3.000]
+25.009: (transmit-data r1 s2 wp3)  [2.000]
+27.010: (transmit-data r1 s1 wp3)  [2.000]

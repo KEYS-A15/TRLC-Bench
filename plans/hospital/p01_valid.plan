@@ -1,27 +1,11 @@
-; TRLCBench Hospital p01 Valid Plan
-; Makespan: 22.0 | OR window closes: 28.0 | Slack: 6.0
-;
-; Timeline:
-;   [0,1]   transfer intake→decontam_st
-;   [1,4]   decontaminate b1 (dur=3, min=3)
-;   [4,5]   transfer decontam_st→wash_st
-;   [5,7]   wash b1 (dur=2, min=2)
-;   [7,8]   transfer wash_st→sterilize_st
-;   [8,13]  sterilize b1 ac1 (dur=5, min=5)
-;   [13,14] transfer sterilize_st→cool_st
-;   [14,17] cool b1 (dur=3, min=3)
-;   [17,18] transfer cool_st→pack_st
-;   [18,19] pack b1 (dur=1, min=1)
-;   [19,21] transfer pack_st→or1_st (deliver, dur=2)
-
 0.000: (transfer b1 intake decontam_st) [1.000]
-1.000: (decontaminate b1 decontam_st) [3.000]
-4.000: (transfer b1 decontam_st wash_st) [1.000]
-5.000: (wash b1 wash_st) [2.000]
-7.000: (transfer b1 wash_st sterilize_st) [1.000]
-8.000: (sterilize b1 sterilize_st ac1) [5.000]
-13.000: (transfer b1 sterilize_st cool_st) [1.000]
-14.000: (cool b1 cool_st) [3.000]
-17.000: (transfer b1 cool_st pack_st) [1.000]
-18.000: (pack b1 pack_st) [1.000]
-19.000: (deliver b1 pack_st or1 or1_st) [2.000]
+1.001: (decontaminate b1 decontam_st) [3.000]
+4.002: (transfer b1 decontam_st wash_st) [1.000]
+5.003: (wash b1 wash_st) [2.000]
+7.004: (transfer b1 wash_st sterilize_st) [1.000]
+8.005: (sterilize b1 sterilize_st ac1) [5.000]
+13.006: (transfer b1 sterilize_st cool_st) [1.000]
+14.007: (cool b1 cool_st) [3.000]
+17.008: (transfer b1 cool_st pack_st) [1.000]
+18.009: (pack b1 pack_st) [1.000]
+19.010: (deliver b1 pack_st or1 or1_st) [2.000]

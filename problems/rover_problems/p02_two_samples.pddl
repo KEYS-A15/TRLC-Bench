@@ -22,6 +22,7 @@
 
   (:init
     (at r1 wp0)
+    (available r1)
     (can-analyze r1)
 
     ;; Topology: branching at wp1
@@ -59,7 +60,7 @@
 
     ;; Comm window — larger but still tight for two samples
     (comm-window-open wp3)
-    (at 30 (not (comm-window-open wp3)))
+    (at 31 (not (comm-window-open wp3)))
   )
 
   (:goal

@@ -1,9 +1,9 @@
 """
-TRLCBench CLI — run experiments from the command line.
+TRLC_Bench CLI — run experiments from the command line.
 
 Usage:
-    trlcbench run --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
-    trlcbench validate --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
+    trlc_bench run --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
+    trlc_bench validate --config configs/rover_p01.yaml --plan plans/rover/p01_valid.plan
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from trlc_bench.injector import (
 )
 from trlc_bench.metrics import compute_metrics
 from trlc_bench.parser import load_domain_config, parse_plan_file
-from trlc_bench.repairer import local_shift_repair, replan_naive
+from trlc_bench.repairer import local_shift_repair, replan_naive, constraint_aware_repair
 from trlc_bench.validator import validate_plan
 
 
@@ -79,6 +79,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     strategies = {
         "local_shift": local_shift_repair,
         "replan_naive": replan_naive,
+        "constraint_aware": constraint_aware_repair,
     }
 
     # Run matrix
@@ -97,8 +98,8 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="trlcbench",
-        description="TRLCBench: Temporal Plan Repair Benchmark",
+        prog="trlc_bench",
+        description="TRLC_Bench: Temporal Plan Repair Benchmark",
     )
     subparsers = parser.add_subparsers(dest="command")
 

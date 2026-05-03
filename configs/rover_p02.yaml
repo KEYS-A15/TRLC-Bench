@@ -1,0 +1,55 @@
+# ==========================================================================
+# TRLCBench Domain Config: Mars Rover — Problem 02 (Two Samples)
+#
+# Two samples at different waypoints, shared comm window.
+# Branching topology forces routing decision.
+# Slack: 1.0 (tight but not zero — slightly more forgiving than p01)
+# ==========================================================================
+
+domain_name: rover-temporal
+ergodicity: non-ergodic
+
+# Both transmissions must complete before window closes
+deadlines:
+  transmit-data: 30.0
+
+# Ordering: each sample has its own collect→analyze→transmit chain
+# But transmit is shared at wp3, so they sequence there
+ordering_constraints:
+  - [collect-sample, analyze-sample]
+  - [analyze-sample, transmit-data]
+
+# Mutex: rover can't do two things at once
+mutex_actions:
+  - [navigate, collect-sample]
+  - [navigate, analyze-sample]
+  - [navigate, transmit-data]
+  - [collect-sample, analyze-sample]
+  - [collect-sample, transmit-data]
+  - [analyze-sample, transmit-data]
+
+bounded_durations: {}
+
+cascade_dependencies:
+  navigate:
+    - collect-sample
+    - analyze-sample
+    - transmit-data
+  collect-sample:
+    - analyze-sample
+    - transmit-data
+  analyze-sample:
+    - transmit-data
+
+dead_end_conditions:
+  - "Comm window closed (t > 30) with any data untransmitted"
+  - "Battery depleted before reaching all sample locations"
+
+recovery_options: []
+
+metadata:
+  problem: p02_two_samples
+  comm_window_close: 30.0
+  topology: "wp0--3--wp1--3--wp2--3--wp3, wp1--2--wp4"
+  samples: "s1@wp2, s2@wp4"
+  initial_battery: 100
