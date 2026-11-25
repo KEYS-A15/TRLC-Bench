@@ -19,6 +19,7 @@ All injectors are domain-agnostic: they operate on TemporalPlan + DomainConfig.
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 
 from trlc_bench.models import (
     DomainConfig,
@@ -153,7 +154,7 @@ def inject_window_shrink(
 
     Args:
         plan: Original valid plan.
-        config: Domain configuration (will be patched).
+        config: Original domain configuration, left unchanged.
         deadline_name: Name of the deadline to change.
         new_deadline: New (earlier) deadline time.
 
@@ -224,6 +225,9 @@ def inject_window_shrink(
         disrupted_plan=disrupted,
         report=report,
         problem_patch=problem_patch,
+        config_override=replace(
+            config, deadlines={**config.deadlines, deadline_name: new_deadline}
+        ),
     )
 
 

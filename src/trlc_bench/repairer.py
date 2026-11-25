@@ -23,6 +23,45 @@ from trlc_bench.models import (
     RepairResult,
     TemporalPlan,
 )
+from trlc_bench.validator import validate_plan
+
+
+def rule_based_repair(
+    disrupted: TemporalPlan,
+    config: DomainConfig,
+    report: FailureReport,
+) -> RepairResult:
+    """Try candidate repairs in a fixed order, using structural validation."""
+    if (
+        report.failure_class != FailureClass.C
+        and disrupted.actions
+        and validate_plan(disrupted, config).is_valid
+    ):
+        return RepairResult(
+            copy.deepcopy(disrupted), "rule_based", ["Kept current schedule"], True,
+            {"selected_strategy": "keep"},
+        )
+
+    # Timing-only operators cannot restore the failed action in Class C.
+    strategies = (constraint_aware_repair,)
+    if report.failure_class != FailureClass.C:
+        strategies = (local_shift_repair, constraint_aware_repair, replan_naive)
+
+    log = []
+    for strategy in strategies:
+        candidate = strategy(disrupted, config, report)
+        if candidate.success and validate_plan(candidate.repaired_plan, config).is_valid:
+            return RepairResult(
+                candidate.repaired_plan, "rule_based",
+                log + candidate.repair_actions_taken, True,
+                {"selected_strategy": candidate.strategy_name},
+            )
+        log.append(f"Rejected {candidate.strategy_name}")
+
+    return RepairResult(
+        copy.deepcopy(disrupted), "rule_based", log, False,
+        {"selected_strategy": None},
+    )
 
 
 # ---------------------------------------------------------------------------

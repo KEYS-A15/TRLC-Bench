@@ -52,6 +52,7 @@ def run_single_experiment(
     Returns:
         Tuple of (RepairResult, RepairMetrics).
     """
+    config = injection_result.config_override or config
     repair = repair_fn(
         injection_result.disrupted_plan,
         config,

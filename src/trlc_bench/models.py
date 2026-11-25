@@ -102,6 +102,7 @@ class InjectionResult:
     disrupted_plan: TemporalPlan
     report: FailureReport
     problem_patch: str = ""     # PDDL patch text if problem file changes
+    config_override: DomainConfig | None = None
 
 
 # ---------------------------------------------------------------------------

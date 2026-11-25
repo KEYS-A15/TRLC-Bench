@@ -21,6 +21,7 @@ from trlc_bench.injector import (
 from trlc_bench.metrics import compute_metrics
 from trlc_bench.parser import load_domain_config, parse_plan_file
 from trlc_bench.repairer import local_shift_repair, replan_naive, constraint_aware_repair
+from trlc_bench.repairer import rule_based_repair
 from trlc_bench.trace_exporter import export_trace
 from trlc_bench.validator import validate_plan
 from trlc_bench.models import RepairResult
@@ -83,6 +84,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         "local_shift": local_shift_repair,
         "replan_naive": replan_naive,
         "constraint_aware": constraint_aware_repair,
+        "rule_based": rule_based_repair,
         "llm_repair": llm_repair,
     }
 
