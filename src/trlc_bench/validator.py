@@ -59,6 +59,7 @@ def validate_plan(plan: TemporalPlan, config: DomainConfig) -> ValidationResult:
     _check_ordering(plan, config, result)
     _check_mutex(plan, config, result)
     _check_bounded_durations(plan, config, result)
+    # _check_fixed_durations(plan, config, result)
 
     return result
 
@@ -110,13 +111,29 @@ def _check_ordering(
 def _check_mutex(
     plan: TemporalPlan, config: DomainConfig, result: ValidationResult
 ) -> None:
-    """Check that mutually exclusive actions don't overlap."""
+    """Check that mutually exclusive actions don't overlap.
+
+    When name_a == name_b (self-mutex, e.g. two sterilize actions sharing
+    an autoclave), we check whether the actions share any argument (the
+    shared resource). We also skip comparing an action to itself.
+    """
     for name_a, name_b in config.mutex_actions:
         actions_a = plan.get_actions_by_name(name_a)
         actions_b = plan.get_actions_by_name(name_b)
 
         for a in actions_a:
             for b in actions_b:
+                # Never compare an action to itself
+                if a is b:
+                    continue
+
+                # For same-name mutex (e.g. sterilize vs sterilize),
+                # only flag if they share a resource argument
+                if name_a == name_b:
+                    shared_args = set(a.args) & set(b.args)
+                    if not shared_args:
+                        continue
+
                 if a.overlaps(b):
                     result.add_violation(
                         f"MUTEX: '{name_a}' [{a.start_time:.3f},{a.end_time:.3f}] "
@@ -140,4 +157,28 @@ def _check_bounded_durations(
                 result.add_violation(
                     f"BOUNDED_DURATION: '{action_name}' duration={action.duration:.3f} "
                     f"> maximum={d_max:.3f} (too long — constraint violated)"
+                )
+
+
+def _check_fixed_durations(
+    plan: TemporalPlan, config: DomainConfig, result: ValidationResult
+) -> None:
+    """Check that actions with fixed durations have the exact required duration.
+
+    In PDDL, durations like (= ?duration (distance ?from ?to)) are fixed
+    by the problem definition. A repaired plan that changes these durations
+    is semantically invalid even if it meets deadlines.
+    """
+    fixed = getattr(config, "fixed_durations", {})
+    if not fixed:
+        return
+
+    for action_name, required_dur in fixed.items():
+        matching = plan.get_actions_by_name(action_name)
+        for action in matching:
+            if abs(action.duration - required_dur) > 1e-9:
+                result.add_violation(
+                    f"FIXED_DURATION: '{action_name}' duration={action.duration:.3f} "
+                    f"but must be exactly {required_dur:.3f} "
+                    f"(deviation={action.duration - required_dur:+.3f})"
                 )
